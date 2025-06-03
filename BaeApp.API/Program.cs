@@ -1,9 +1,29 @@
+﻿using BaeApp.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
+
+
+// Lấy ConnectionString từ appsetting.json
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Đăng ký AppDbContext với SQL Server
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(
+        connectionString,
+        sqlOptions => sqlOptions.MigrationsAssembly("BaeApp.Infrastructure")
+    )
+);
+// Thêm repository/service ở đây 
+
+// các cấu hình khác ví dụ: 
+// builder.service.AddScoped<IUserRepository, UserRepository>();
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
