@@ -1,4 +1,5 @@
-﻿using BaeApp.Core.Interfaces;
+﻿using BaeApp.API.BackgroundServices;
+using BaeApp.Core.Interfaces;
 using BaeApp.Infrastructure.Persistence;
 using BaeApp.Infrastructure.Repositories;
 using BaeApp.Infrastructure.Services;
@@ -15,15 +16,18 @@ var builder = WebApplication.CreateBuilder(args);
 // ---------------------------------------------------------
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 // ---------------------------------------------------------
 // Đăng ký AppDbContext với SQL Server
 // ---------------------------------------------------------
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         connectionString,
         sqlOptions => sqlOptions.MigrationsAssembly("BaeApp.Infrastructure")
     )
 );
+
 // ---------------------------------------------------------
 // Đọc Jwtsettings từ appsetting.json
 // ---------------------------------------------------------
@@ -64,6 +68,13 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddHostedService<ReminderBackgroundService>();
+
 
 builder.Services.AddControllers();
 // ---------------------------------------------------------
@@ -77,7 +88,7 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
-    { 
+    {
         Title = "Bae API",
         Version = "v1",
         Description = "API cho Bae App"

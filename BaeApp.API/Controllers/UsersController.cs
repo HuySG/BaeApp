@@ -7,10 +7,10 @@ namespace BaeApp.API.Controllers
 {
     [Route("api/v1/user")]
     [ApiController]
-    [Authorize]
+    [Authorize] // tất cả action trong controller này cần được có token hợp lệ
     public class UsersController : ControllerBase
     {
-        private readonly IUserService _userService ;
+        private readonly IUserService _userService;
 
         public UsersController(IUserService userService)
         {
@@ -18,7 +18,7 @@ namespace BaeApp.API.Controllers
         }
 
         [HttpGet("me")]
-        public async Task<IActionResult> GetCurrentUser ()
+        public async Task<IActionResult> GetCurrentUser()
         {
             var userDto = await _userService.GetCurrentUserAsync(User);
             if (userDto == null)
@@ -29,7 +29,7 @@ namespace BaeApp.API.Controllers
         }
 
         [HttpGet("{userId:guid}")]
-        [Authorize(Roles ="Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(Guid userId)
         {
             var userDto = await _userService.GetByIdAsync(userId);

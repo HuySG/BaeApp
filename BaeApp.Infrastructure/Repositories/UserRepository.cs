@@ -12,6 +12,7 @@ namespace BaeApp.Infrastructure.Repositories
 {
     public class UserRepository : IUserRepository
     {
+        // AppDbContext được DI inject vào, cho phép repository thao tác với DB
         private readonly AppDbContext _context;
 
         public UserRepository(AppDbContext context)
@@ -19,11 +20,13 @@ namespace BaeApp.Infrastructure.Repositories
             _context = context;
         }
 
+        // Thêm mới user vào DBset rồi gọi SaveChangesAysnc() để commit
         public async Task AddAsync(User user)
         {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
         }
+        // Xóa user và SaveChangesAsync() để commit
 
         public async Task DeleteAsync(User user)
         {
@@ -31,16 +34,21 @@ namespace BaeApp.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<User> GetByEmailAsync(string emails)
+        // lấy User theo emails 
+        // AsNoTracking() cho biết chỉ đọc
+        // Không theo dõi EF change tracking ( tăng hiệu năng khi chỉ đọc )
+        public async Task<User> GetByEmailAsync(string email)
         {
-            return await _context.Users.SingleOrDefaultAsync(u => u.Email == emails);
+            return await _context.Users
+                .AsNoTracking()
+                .SingleOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task<User> GetByIdAsync(Guid userId)
         {
             return await _context.Users.FindAsync(userId);
         }
-
+        // Cập nhật user và SaveChangesAsync() để commit
         public async Task UpdateAsync(User user)
         {
             _context.Users.Update(user);

@@ -18,7 +18,11 @@ namespace BaeApp.Infrastructure.Services
 {
     public class UserService : IUserService
     {
+        // AppDbContext _context để truy cập vào DB
         private readonly AppDbContext _context;
+
+        // IConfiguration _configuration để đọc config 
+        // VD: phần "JwtSettings" trong appSetting.json
         private readonly IConfiguration _configuration;
 
         public UserService(AppDbContext context, IConfiguration configuration)
@@ -27,6 +31,12 @@ namespace BaeApp.Infrastructure.Services
             _configuration = configuration;
         }
 
+
+        // Kiểm tra xem email đã tồn tại chưa
+        // Nếu chưa: hash mật khẩu -> tạo entity User mới
+        // -> gọi _context.User.Add(user) và SaveChangesAsync().
+        // sinh ra JWT token qua hàm GenerateJwtToken(user)
+        // tạo ra UserDto và trả kèm Token
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto)
         {
             // 1. Kiểm tra email đã tồn tại
@@ -73,6 +83,10 @@ namespace BaeApp.Infrastructure.Services
             };
         }
 
+        // lấy user theo email
+        // so sánh mật khẩu 
+        // nếu đúng -> sinh ra token mới giống như register 
+        // trả AuthResponse
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             // 1. Lấy user theo email
@@ -149,11 +163,13 @@ namespace BaeApp.Infrastructure.Services
 
         public async Task<UserDto> GetByIdAsync(Guid userId)
         {
+            // lấy userId
             var user = await _context.Users
                 .AsNoTracking()
                 .SingleOrDefaultAsync(u => u.UserId == userId);
+            // nếu user không có trả về rỗng
             if (user == null) return null;
-
+            // trả về UserDto 
             return new UserDto
             {
                 UserId = user.UserId,
@@ -163,27 +179,37 @@ namespace BaeApp.Infrastructure.Services
                 CreateAt = user.CreateAt
             };
         }
-   
+
         public async Task<bool> ChangeRoleAsync(Guid userId, string newRole)
         {
+            // tìm user theo userId
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return false;
-
+            // Parse newRole thành RoleType enum,
             if (!Enum.TryParse<RoleType>(newRole, out var parsedRole))
                 throw new Exception("Role không hợp lệ.");
 
             user.Role = parsedRole;
+            //Update Role
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+            // trả true nếu thành công, còn false nếu không tìm thấy
             return true;
         }
 
         private string GenerateJwtToken(User user)
         {
+            // Đọc config "JwtSettings" có key/Issuer/Audience/ExpiresInMinutes
+            // tạo SymmectricSecurityKey từ key
+            // tạo SymmectricCredentials với thuật khoán HMAC-SHA256
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+            // tạo mới mảng Claim để đính kèm
+            // JwtRegisteredClaimNamé.Sub = email(subject)
+            // ClaimTypes.NameIdentifier = GUID userId ( sẽ dùng để get current user )
+            // ClaimTypes.Role = role(Member/Admin)
+            // JwtRegisteredClaimNames.Jti = token id ngẫu nhiên (unique)
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
@@ -191,7 +217,7 @@ namespace BaeApp.Infrastructure.Services
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
-
+            // tạo JwtSecurityToken với issuer, audience, mảng claims, thời hạn (expires) và signingCredentitals
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
@@ -199,10 +225,10 @@ namespace BaeApp.Infrastructure.Services
                 expires: DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpiresInMinutes"])),
                 signingCredentials: creds
             );
-
+            // Đưa token về thành string và trả về
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-    
+
     }
 }

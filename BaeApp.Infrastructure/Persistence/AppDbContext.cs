@@ -10,12 +10,14 @@ namespace BaeApp.Infrastructure.Persistence
 {
     public class AppDbContext : DbContext
     {
+        // DbContextOptions được inject từ file Program.cs ( khi gọi UseSqlServer(connectionString))
+        // giúp EF Core biết kết nối đến DB
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
 
         // Khai báo Dbset cho mỗi entity
-
+        // DbSet<User> Users ánh xạ bảng Users
         public DbSet<User> Users { get; set; }
         public DbSet<TaskItem> TaskItems { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -23,7 +25,8 @@ namespace BaeApp.Infrastructure.Persistence
         public DbSet<Reminder> Reminders { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
-
+        // Trong OnModlCreating, có thể config thêm constraint 
+        // unique index, max length, default value, relationship,..
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
